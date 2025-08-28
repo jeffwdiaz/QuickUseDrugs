@@ -1,20 +1,21 @@
 # Project Zomboid API Reference (Build 42)
 
-**Purpose**: Comprehensive reference of the core APIs used by QuickUseDrugs and QUScrap mods, with implementation examples and research status. Values and availability can differ between builds; verify against your installed version.
+Purpose: Comprehensive reference of the core APIs available in Project Zomboid for mod development, with implementation examples and research status.
 
 ---
 
 ## Table of Contents
 
 1. [Core APIs](#core-apis)
-2. [QuickUseDrugs APIs](#quickusedrugs-apis)
-3. [QUScrap APIs](#quscrap-apis)
-4. [Implementation Examples](#implementation-examples)
-5. [Research Status](#research-status)
-6. [Mod Options](#mod-options)
-7. [Debugging](#debugging)
-8. [File Locations](#file-locations)
-9. [Useful References](#useful-references)
+2. [Player and Moodles APIs](#player-and-moodles-apis)
+3. [Inventory and Container APIs](#inventory-and-container-apis)
+4. [Moveable Cursor System](#moveable-cursor-system)
+5. [Implementation Examples](#implementation-examples)
+6. [Research Status](#research-status)
+7. [Mod Options](#mod-options)
+8. [Debugging](#debugging)
+9. [File Locations](#file-locations)
+10. [Useful References](#useful-references)
 
 ---
 
@@ -24,11 +25,11 @@
 
 - **Events.OnGameStart.Add(function fn)**: Register a callback that runs after the game starts and Lua is initialized.
 
-  - Used in both mods to initialize configurations and set up event listeners.
+  - Used to initialize configurations and set up event listeners.
   - Docs: PZwiki Modding hub (search for "Events"), official JavaDocs for event types vary by build.
 
 - **Events.OnKeyPressed.Add(function(keyCode))**: Registers a callback for keyboard input; receives an integer key code.
-  - Used to trigger mod-specific logic when configured keys are pressed.
+  - Used to trigger custom logic when configured keys are pressed.
   - Note: Compare `key` against your configured key codes.
 
 ### Player and Context
@@ -49,9 +50,9 @@
 
 ---
 
-## QuickUseDrugs APIs
+## Player and Moodles APIs
 
-### Player and Moodles
+### Moodle Management
 
 - **IsoPlayer:getMoodles() -> Moodles** and **Moodles:getMoodleLevel(MoodleType)**: Read current moodle levels as integers 0–4.
 
@@ -60,9 +61,13 @@
 
 - **MoodleType.[Pain|Panic|Unhappy]**: Enum entries selecting which moodle to query.
 
+### Player Communication
+
 - **IsoPlayer:Say(string)**: Displays a speech bubble and logs character speech.
 
-### Inventory and Containers
+## Inventory and Container APIs
+
+### Player Inventory
 
 - **IsoPlayer:getInventory() -> ItemContainer**: Player main inventory.
 
@@ -70,19 +75,21 @@
 
   - Common operations: `:size()` and `:get(index)` for iteration from 0 to size-1.
 
+### Item Management
+
 - **InventoryItem:getDisplayName() -> string** and **InventoryItem:getType() -> string**: Item identity helpers.
 
 - **InventoryItem:getContainer() -> ItemContainer|nil**: Returns nested container if the item is itself a container (e.g., bags). Enables recursive searches.
+
+### Worn Equipment
 
 - **IsoPlayer:getClothingItem_Back() -> InventoryItem|nil**: Currently worn back item (e.g., backpack). Use `:getContainer()` to inspect contents.
 
 ---
 
-## QUScrap APIs
+## Moveable Cursor System
 
-### Moveable Cursor System
-
-#### Core Cursor Management
+### Core Cursor Management
 
 - **ISMoveableCursor:new(IsoPlayer \_character)**: Creates a new moveable cursor instance.
 
@@ -163,7 +170,7 @@
 
 ## Implementation Examples
 
-### Cursor Mode Approach (Recommended for QUScrap)
+### Cursor Mode Approach (Recommended for Cursor-Based Actions)
 
 ```lua
 function onActionKeybindPressed(modeString)
@@ -225,20 +232,20 @@ function onDisassembleKeybindPressed()
 end
 ```
 
-### QuickUseDrugs Implementation Pattern
+### Inventory Search Implementation Pattern
 
 ```lua
--- Based on QUDrugs.lua implementation
-function onQuickUseKeybindPressed()
+-- Example of searching through player inventory
+function onInventorySearchKeybindPressed()
     local player = getPlayer()
     local inventory = player:getInventory()
     local items = inventory:getItems()
 
-    -- Search for drugs in inventory
+    -- Search for specific items in inventory
     for i = 0, items:size() - 1 do
         local item = items:get(i)
-        if isDrugItem(item) then
-            useDrugItem(player, item)
+        if isTargetItem(item) then
+            useTargetItem(player, item)
             break
         end
     end
@@ -276,10 +283,6 @@ end
 
 - **group:getOption(option_id):getValue() -> integer**: Read the configured key code at runtime.
 
-### QuickUseDrugs Access Helper
-
-In this mod, access helpers are exposed via `QUDrugsSettings.getQuickUseDrugsKeybind()`.
-
 ---
 
 ## Debugging
@@ -291,9 +294,9 @@ In this mod, access helpers are exposed via `QUDrugsSettings.getQuickUseDrugsKey
 
 ## File Locations
 
-### QuickUseDrugs Mod
+### Example Mod Structure
 
-- `media/lua/client/QUDrugs.lua`
+- `media/lua/client/YourMod.lua`
 
   - Events.OnGameStart.Add, Events.OnKeyPressed.Add
   - getPlayer, IsoPlayer:getMoodles, Moodles:getMoodleLevel, MoodleType
@@ -301,20 +304,20 @@ In this mod, access helpers are exposed via `QUDrugsSettings.getQuickUseDrugsKey
   - InventoryItem:getDisplayName, getType, getContainer
   - IsoPlayer:getClothingItem_Back, IsoPlayer:Say, print
 
-- `media/lua/client/QUDrugsOptions.lua`
+- `media/lua/client/YourModOptions.lua`
   - PZAPI.ModOptions:create, :addDescription, :addKeyBind
   - :getOption(...):getValue()
 
-### QUScrap Mod
+### Cursor-Based Mod Structure
 
-- `media/lua/client/QUScrap.lua`
+- `media/lua/client/YourCursorMod.lua`
 
   - Events.OnGameStart.Add, Events.OnKeyPressed.Add
   - getPlayer, IsoPlayer:getPlayerNum, getCurrentSquare
   - ISMoveableCursor.changeModeKey, setMoveableMode
   - Action mode switching and cursor management
 
-- `media/lua/client/QUScrapOptions.lua`
+- `media/lua/client/YourCursorModOptions.lua`
   - PZAPI.ModOptions:create, :addDescription, :addKeyBind
   - :getOption(...):getValue() for each action keybind
 
