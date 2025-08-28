@@ -8,7 +8,7 @@ Project Zomboid mod providing quick-use keybinds and configurable options for co
 
 - Language: Lua (Project Zomboid modding API)
 - Target: Project Zomboid Build 42
-- Packaging: QuickUseDrugs/contents/mods/ExtraKeybinds structure
+- Packaging: QuickUseDrugs/contents/mods structure
 - Distribution: Local mod folder; compatible with Workshop packaging
 
 ## Functional Requirements

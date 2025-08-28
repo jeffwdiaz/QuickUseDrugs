@@ -15,7 +15,7 @@
 #    pwsh -File .\docs\upload_to_workshop.ps1 -Username YOUR_STEAM_USERNAME -CreateNew
 #
 # OPTIONAL ARGUMENTS:
-# -WorkshopFile "C:\path\to\workshop.txt"  # Defaults to ..\ExtraKeybinds\workshop.txt relative to this script
+# -WorkshopFile "C:\path\to\workshop.txt"  # Defaults to ..\QuickUseDrugs\workshop.txt relative to this script
 # -SteamCmdPath  "C:\SteamCMD\steamcmd.exe" # Override SteamCMD path if installed elsewhere
 # -KeepRemoteDescription                 # Do not upload local description; keep existing text on Workshop page
 # -KeepRemoteTitle                       # Do not upload local title; keep existing title on Workshop page
@@ -41,9 +41,9 @@ Write-Host "=== Project Zomboid Workshop Upload ===" -ForegroundColor Cyan
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-# Default workshop.txt path (repo/docs/ -> repo/ExtraKeybinds/workshop.txt)
+# Default workshop.txt path (repo/docs/ -> repo/QuickUseDrugs/workshop.txt)
 if (-not $WorkshopFile -or $WorkshopFile.Trim() -eq "") {
-    $WorkshopFile = Join-Path (Join-Path $ScriptDir "..\ExtraKeybinds") "workshop.txt"
+    $WorkshopFile = Join-Path (Join-Path $ScriptDir "..\QuickUseDrugs") "workshop.txt"
 }
 
 if (-not (Test-Path -LiteralPath $SteamCmdPath)) {
