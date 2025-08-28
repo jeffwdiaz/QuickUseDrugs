@@ -1,0 +1,14 @@
+# All .cursor folders and all files within
+**/.cursor/**
+
+# All archive folders and all files within
+**/archive/**
+
+# All environment variable files
+**/.env
+**/.env.*
+
+# <--- AI Content Boundary
+# <--- AI model has written all content below this line
+
+

@@ -5,7 +5,7 @@
 require "PZAPI/ModOptions"
 
 -- Mod Options Setup
-local QUDrugsOptions = PZAPI.ModOptions:create("QuickUseDrugs", "QuickUse Drugs")
+local QUDrugsOptions = PZAPI.ModOptions:create("QuickUse: Drugs", "QuickUse: Drugs")
 
 -- Add title and description
 QUDrugsOptions:addDescription(

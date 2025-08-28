@@ -78,11 +78,17 @@ local function searchForMedication(player, medicationType, checkFunction, medica
         return foundItems
     end
     
-    local inventorySize = playerInventory:getItems():size()
+    local inventoryItems = playerInventory:getItems()
+    if not inventoryItems then
+        print("QUDrugs: Debug - No inventory items found!")
+        return foundItems
+    end
+    
+    local inventorySize = inventoryItems:size()
     print("QUDrugs: Debug - Inventory size: " .. inventorySize)
     
     for i = 0, inventorySize - 1 do
-        local item = playerInventory:getItems():get(i)
+        local item = inventoryItems:get(i)
         if item then
             print("QUDrugs: Debug - Checking item: " .. item:getDisplayName())
             if checkFunction(item) then
@@ -92,27 +98,7 @@ local function searchForMedication(player, medicationType, checkFunction, medica
         end
     end
     
-    -- Search through bags and nested containers
-    local function searchContainer(container)
-        if not container then return end
-        
-        for i = 0, container:getItems():size() - 1 do
-            local item = container:getItems():get(i)
-            if item then
-                if checkFunction(item) then
-                    table.insert(foundItems, item)
-                    print("QUDrugs: Found " .. medicationName .. " in container: " .. item:getDisplayName())
-                end
-                
-                -- If item is a container itself, search it recursively
-                if item:getContainer() then
-                    searchContainer(item:getContainer())
-                end
-            end
-        end
-    end
-    
-    -- Search through equipped bags
+    -- Search through equipped bags (simplified, no recursion)
     print("QUDrugs: Debug - Starting bag search...")
     
     print("QUDrugs: Debug - About to get back bag...")
@@ -127,7 +113,16 @@ local function searchForMedication(player, medicationType, checkFunction, medica
         
         if bagContainer then
             print("QUDrugs: Debug - Searching bag container...")
-            searchContainer(bagContainer)
+            local bagItems = bagContainer:getItems()
+            if bagItems then
+                for i = 0, bagItems:size() - 1 do
+                    local item = bagItems:get(i)
+                    if item and checkFunction(item) then
+                        table.insert(foundItems, item)
+                        print("QUDrugs: Found " .. medicationName .. " in bag: " .. item:getDisplayName())
+                    end
+                end
+            end
         end
     end
     
@@ -148,7 +143,10 @@ end
 -- Function to handle high panic levels - search for beta blockers
 local function highPanicLevel()
     local player = getPlayer()
-    if not player then return end
+    if not player then 
+        print("QUDrugs: Error - No player found in highPanicLevel!")
+        return 
+    end
     
     return searchForMedication(player, "betaBlockers", isBetaBlocker, "beta blockers")
 end
@@ -156,7 +154,10 @@ end
 -- Function to handle high pain levels - search for painkillers
 local function highPainLevel()
     local player = getPlayer()
-    if not player then return end
+    if not player then 
+        print("QUDrugs: Error - No player found in highPainLevel!")
+        return 
+    end
     
     return searchForMedication(player, "painkillers", isPainkiller, "painkillers")
 end
@@ -164,7 +165,10 @@ end
 -- Function to handle high unhappiness levels - search for antidepressants
 local function highUnhappinessLevel()
     local player = getPlayer()
-    if not player then return end
+    if not player then 
+        print("QUDrugs: Error - No player found in highUnhappinessLevel!")
+        return 
+    end
     
     return searchForMedication(player, "antidepressants", isAntidepressant, "antidepressants")
 end
@@ -172,12 +176,28 @@ end
 -- Main function that gets called when keybind is pressed
 local function onQuickUseDrugsPressed()
     local player = getPlayer()
-    if not player then return end
+    if not player then 
+        print("QUDrugs: Error - No player found!")
+        return 
+    end
     
-    -- Get all three moodle levels directly
-    local painLevel = player:getMoodles():getMoodleLevel(MoodleType.Pain)
-    local panicLevel = player:getMoodles():getMoodleLevel(MoodleType.Panic)
-    local unhappinessLevel = player:getMoodles():getMoodleLevel(MoodleType.Unhappy)
+    -- Safely get moodle levels with error handling
+    local painLevel = 0
+    local panicLevel = 0
+    local unhappinessLevel = 0
+    
+    local moodles = player:getMoodles()
+    if moodles then
+        -- Try to get moodle levels, with fallback to 0 if any fail
+        local success, result = pcall(function() return moodles:getMoodleLevel(MoodleType.Pain) end)
+        painLevel = success and result or 0
+        
+        success, result = pcall(function() return moodles:getMoodleLevel(MoodleType.Panic) end)
+        panicLevel = success and result or 0
+        
+        success, result = pcall(function() return moodles:getMoodleLevel(MoodleType.Unhappy) end)
+        unhappinessLevel = success and result or 0
+    end
     
     -- Print current moodle levels
     print("=== QUDrugs: Current Moodle Levels ===")
