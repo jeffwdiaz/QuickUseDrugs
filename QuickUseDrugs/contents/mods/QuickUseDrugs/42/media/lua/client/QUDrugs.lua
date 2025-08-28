@@ -112,11 +112,11 @@ local function searchForMedication(player, medicationType, checkFunction, medica
     return foundItems
 end
 
--- Function to handle high panic levels - search for and consume beta blockers
-local function highPanicLevel()
+-- Generic function to handle medication treatment for any drug type
+local function treatWithMedication(medicationType, checkFunction, medicationName, playerMessage)
     local player = getPlayer()
     if not player then
-        print("QUDrugs: Error - No player found in highPanicLevel!")
+        print("QUDrugs: Error - No player found in " .. medicationType .. " treatment!")
         return
     end
 
@@ -126,92 +126,39 @@ local function highPanicLevel()
         return
     end
 
-    -- Search for beta blockers
-    local foundItems = searchForMedication(player, "betaBlockers", isBetaBlocker, "beta blockers")
+    -- Search for the specified medication type
+    local foundItems = searchForMedication(player, medicationType, checkFunction, medicationName)
 
-    -- If we found beta blockers, consume one
+    -- If we found medication, consume one
     if #foundItems > 0 then
-        local betaBlocker = foundItems[1] -- Use the first found beta blocker
+        local medication = foundItems[1] -- Use the first found medication
 
         -- Use the existing ISTakePillAction instead of our custom action
-        local pillAction = ISTakePillAction:new(player, betaBlocker)
+        local pillAction = ISTakePillAction:new(player, medication)
         ISTimedActionQueue.add(pillAction)
 
-        print("QUDrugs: Queued beta blocker consumption using ISTakePillAction")
-        player:Say("Taking a beta blocker...")
+        print("QUDrugs: Queued " .. medicationName .. " consumption using ISTakePillAction")
+        player:Say(playerMessage)
 
         return foundItems
     end
 
     return foundItems
+end
+
+-- Function to handle high panic levels - search for and consume beta blockers
+local function highPanicLevel()
+    return treatWithMedication("betaBlockers", isBetaBlocker, "beta blockers", "Taking a beta blocker...")
 end
 
 -- Function to handle high pain levels - search for and consume painkillers
 local function highPainLevel()
-    local player = getPlayer()
-    if not player then 
-        print("QUDrugs: Error - No player found in highPainLevel!")
-        return 
-    end
-
-    -- Check if player is already doing an action
-    if ISTimedActionQueue.isPlayerDoingAction(player) then
-        player:Say("I'm busy right now, can't take medication.")
-        return
-    end
-
-    -- Search for painkillers
-    local foundItems = searchForMedication(player, "painkillers", isPainkiller, "painkillers")
-
-    -- If we found painkillers, consume one
-    if #foundItems > 0 then
-        local painkiller = foundItems[1] -- Use the first found painkiller
-
-        -- Use the existing ISTakePillAction instead of our custom action
-        local pillAction = ISTakePillAction:new(player, painkiller)
-        ISTimedActionQueue.add(pillAction)
-
-        print("QUDrugs: Queued painkiller consumption using ISTakePillAction")
-        player:Say("Taking a painkiller...")
-
-        return foundItems
-    end
-
-    return foundItems
+    return treatWithMedication("painkillers", isPainkiller, "painkillers", "Taking a painkiller...")
 end
 
 -- Function to handle high unhappiness levels - search for and consume antidepressants
 local function highUnhappinessLevel()
-    local player = getPlayer()
-    if not player then 
-        print("QUDrugs: Error - No player found in highUnhappinessLevel!")
-        return 
-    end
-
-    -- Check if player is already doing an action
-    if ISTimedActionQueue.isPlayerDoingAction(player) then
-        player:Say("I'm busy right now, can't take medication.")
-        return
-    end
-
-    -- Search for antidepressants
-    local foundItems = searchForMedication(player, "antidepressants", isAntidepressant, "antidepressants")
-
-    -- If we found antidepressants, consume one
-    if #foundItems > 0 then
-        local antidepressant = foundItems[1] -- Use the first found antidepressant
-
-        -- Use the existing ISTakePillAction instead of our custom action
-        local pillAction = ISTakePillAction:new(player, antidepressant)
-        ISTimedActionQueue.add(pillAction)
-
-        print("QUDrugs: Queued antidepressant consumption using ISTakePillAction")
-        player:Say("Taking an antidepressant...")
-
-        return foundItems
-    end
-
-    return foundItems
+    return treatWithMedication("antidepressants", isAntidepressant, "antidepressants", "Taking an antidepressant...")
 end
 
 -- Main function that gets called when keybind is pressed
