@@ -63,6 +63,31 @@ local function isAntidepressant(item)
     return false
 end
 
+-- Generic function to search for any type of medication using recursive container search
+local function searchForMedicationRecursive(inventory, checkFunction, medicationName)
+    if not inventory then return nil, nil end
+    
+    for i = 0, inventory:getItems():size() - 1 do
+        local item = inventory:getItems():get(i)
+        
+        if item and checkFunction(item) then
+            return item, inventory
+        end
+        
+        -- Check containers recursively (searches ALL equipped bags automatically)
+        if item:IsInventoryContainer() then
+            local subInventory = item:getInventory()
+            if subInventory then
+                local found, foundIn = searchForMedicationRecursive(subInventory, checkFunction, medicationName)
+                if found then
+                    return found, foundIn
+                end
+            end
+        end
+    end
+    return nil, nil
+end
+
 -- Generic function to search for any type of medication
 local function searchForMedication(player, medicationType, checkFunction, medicationName)
     if not player then return {} end
@@ -86,10 +111,10 @@ local function searchForMedication(player, medicationType, checkFunction, medica
     
     -- Search through equipped bags (simplified, no recursion)
     local bag = player:getClothingItem_Back()
-    if bag then
-        local bagContainer = bag:getContainer()
-        if bagContainer then
-            local bagItems = bagContainer:getItems()
+    if bag and bag:IsInventoryContainer() then
+        local bagInventory = bag:getInventory()
+        if bagInventory then
+            local bagItems = bagInventory:getItems()
             for i = 0, bagItems:size() - 1 do
                 local item = bagItems:get(i)
                 if item and checkFunction(item) then
@@ -126,24 +151,36 @@ local function treatWithMedication(medicationType, checkFunction, medicationName
         return
     end
 
-    -- Search for the specified medication type
-    local foundItems = searchForMedication(player, medicationType, checkFunction, medicationName)
+    -- Search for the specified medication type using recursive search
+    local medication, originalContainer = searchForMedicationRecursive(player:getInventory(), checkFunction, medicationName)
 
     -- If we found medication, consume one
-    if #foundItems > 0 then
-        local medication = foundItems[1] -- Use the first found medication
-
+    if medication then
+        local needsReturn = (originalContainer ~= player:getInventory())
+        
+        if needsReturn then
+            -- Move to main inventory first (like DrinkMain.lua does)
+            print("QUDrugs: Moving " .. medicationName .. " to main inventory for consumption")
+            ISTimedActionQueue.add(ISInventoryTransferAction:new(player, medication, originalContainer, player:getInventory()))
+        end
+        
         -- Use the existing ISTakePillAction instead of our custom action
         local pillAction = ISTakePillAction:new(player, medication)
         ISTimedActionQueue.add(pillAction)
 
         print("QUDrugs: Queued " .. medicationName .. " consumption using ISTakePillAction")
         player:Say(playerMessage)
+        
+        if needsReturn then
+            -- Move it back to original container after consumption
+            print("QUDrugs: Moving " .. medicationName .. " back to original container")
+            ISTimedActionQueue.add(ISInventoryTransferAction:new(player, medication, player:getInventory(), originalContainer))
+        end
 
-        return foundItems
+        return {medication}
     end
 
-    return foundItems
+    return {}
 end
 
 -- Function to handle high panic levels - search for and consume beta blockers
