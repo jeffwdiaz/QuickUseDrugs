@@ -7,6 +7,8 @@
 -- Required modules
 require "QUDrugsOptions"
 
+-- Note: Using existing ISTakePillAction instead of custom action class
+
 -- Helper function to check if an item is a beta blocker
 local function isBetaBlocker(item)
     if not item then return false end
@@ -66,67 +68,37 @@ local function searchForMedication(player, medicationType, checkFunction, medica
     if not player then return {} end
     
     print("QUDrugs: Searching for " .. medicationName .. "...")
-    print("QUDrugs: Debug - checkFunction type: " .. type(checkFunction))
     
     local foundItems = {}
     
     -- Search player's main inventory
-    print("QUDrugs: Debug - Starting main inventory search...")
     local playerInventory = player:getInventory()
-    if not playerInventory then
-        print("QUDrugs: Debug - No player inventory found!")
-        return foundItems
-    end
-    
     local inventoryItems = playerInventory:getItems()
-    if not inventoryItems then
-        print("QUDrugs: Debug - No inventory items found!")
-        return foundItems
-    end
-    
     local inventorySize = inventoryItems:size()
-    print("QUDrugs: Debug - Inventory size: " .. inventorySize)
     
     for i = 0, inventorySize - 1 do
         local item = inventoryItems:get(i)
-        if item then
-            print("QUDrugs: Debug - Checking item: " .. item:getDisplayName())
-            if checkFunction(item) then
-                table.insert(foundItems, item)
-                print("QUDrugs: Found " .. medicationName .. ": " .. item:getDisplayName())
-            end
+        if item and checkFunction(item) then
+            table.insert(foundItems, item)
+            print("QUDrugs: Found " .. medicationName .. ": " .. item:getDisplayName())
         end
     end
     
     -- Search through equipped bags (simplified, no recursion)
-    print("QUDrugs: Debug - Starting bag search...")
-    
-    print("QUDrugs: Debug - About to get back bag...")
     local bag = player:getClothingItem_Back()
-    print("QUDrugs: Debug - Back bag: " .. tostring(bag))
-    
     if bag then
-        print("QUDrugs: Debug - Bag name: " .. bag:getDisplayName())
-        print("QUDrugs: Debug - About to get bag container...")
         local bagContainer = bag:getContainer()
-        print("QUDrugs: Debug - Bag container: " .. tostring(bagContainer))
-        
         if bagContainer then
-            print("QUDrugs: Debug - Searching bag container...")
             local bagItems = bagContainer:getItems()
-            if bagItems then
-                for i = 0, bagItems:size() - 1 do
-                    local item = bagItems:get(i)
-                    if item and checkFunction(item) then
-                        table.insert(foundItems, item)
-                        print("QUDrugs: Found " .. medicationName .. " in bag: " .. item:getDisplayName())
-                    end
+            for i = 0, bagItems:size() - 1 do
+                local item = bagItems:get(i)
+                if item and checkFunction(item) then
+                    table.insert(foundItems, item)
+                    print("QUDrugs: Found " .. medicationName .. " in bag: " .. item:getDisplayName())
                 end
             end
         end
     end
-    
-    print("QUDrugs: Debug - Bag search completed")
     
     -- Report findings
     if #foundItems > 0 then
@@ -140,37 +112,106 @@ local function searchForMedication(player, medicationType, checkFunction, medica
     return foundItems
 end
 
--- Function to handle high panic levels - search for beta blockers
+-- Function to handle high panic levels - search for and consume beta blockers
 local function highPanicLevel()
     local player = getPlayer()
-    if not player then 
+    if not player then
         print("QUDrugs: Error - No player found in highPanicLevel!")
-        return 
+        return
     end
-    
-    return searchForMedication(player, "betaBlockers", isBetaBlocker, "beta blockers")
+
+    -- Check if player is already doing an action
+    if ISTimedActionQueue.isPlayerDoingAction(player) then
+        player:Say("I'm busy right now, can't take medication.")
+        return
+    end
+
+    -- Search for beta blockers
+    local foundItems = searchForMedication(player, "betaBlockers", isBetaBlocker, "beta blockers")
+
+    -- If we found beta blockers, consume one
+    if #foundItems > 0 then
+        local betaBlocker = foundItems[1] -- Use the first found beta blocker
+
+        -- Use the existing ISTakePillAction instead of our custom action
+        local pillAction = ISTakePillAction:new(player, betaBlocker)
+        ISTimedActionQueue.add(pillAction)
+
+        print("QUDrugs: Queued beta blocker consumption using ISTakePillAction")
+        player:Say("Taking a beta blocker...")
+
+        return foundItems
+    end
+
+    return foundItems
 end
 
--- Function to handle high pain levels - search for painkillers
+-- Function to handle high pain levels - search for and consume painkillers
 local function highPainLevel()
     local player = getPlayer()
     if not player then 
         print("QUDrugs: Error - No player found in highPainLevel!")
         return 
     end
-    
-    return searchForMedication(player, "painkillers", isPainkiller, "painkillers")
+
+    -- Check if player is already doing an action
+    if ISTimedActionQueue.isPlayerDoingAction(player) then
+        player:Say("I'm busy right now, can't take medication.")
+        return
+    end
+
+    -- Search for painkillers
+    local foundItems = searchForMedication(player, "painkillers", isPainkiller, "painkillers")
+
+    -- If we found painkillers, consume one
+    if #foundItems > 0 then
+        local painkiller = foundItems[1] -- Use the first found painkiller
+
+        -- Use the existing ISTakePillAction instead of our custom action
+        local pillAction = ISTakePillAction:new(player, painkiller)
+        ISTimedActionQueue.add(pillAction)
+
+        print("QUDrugs: Queued painkiller consumption using ISTakePillAction")
+        player:Say("Taking a painkiller...")
+
+        return foundItems
+    end
+
+    return foundItems
 end
 
--- Function to handle high unhappiness levels - search for antidepressants
+-- Function to handle high unhappiness levels - search for and consume antidepressants
 local function highUnhappinessLevel()
     local player = getPlayer()
     if not player then 
         print("QUDrugs: Error - No player found in highUnhappinessLevel!")
         return 
     end
-    
-    return searchForMedication(player, "antidepressants", isAntidepressant, "antidepressants")
+
+    -- Check if player is already doing an action
+    if ISTimedActionQueue.isPlayerDoingAction(player) then
+        player:Say("I'm busy right now, can't take medication.")
+        return
+    end
+
+    -- Search for antidepressants
+    local foundItems = searchForMedication(player, "antidepressants", isAntidepressant, "antidepressants")
+
+    -- If we found antidepressants, consume one
+    if #foundItems > 0 then
+        local antidepressant = foundItems[1] -- Use the first found antidepressant
+
+        -- Use the existing ISTakePillAction instead of our custom action
+        local pillAction = ISTakePillAction:new(player, antidepressant)
+        ISTimedActionQueue.add(pillAction)
+
+        print("QUDrugs: Queued antidepressant consumption using ISTakePillAction")
+        player:Say("Taking an antidepressant...")
+
+        return foundItems
+    end
+
+    return foundItems
 end
 
 -- Main function that gets called when keybind is pressed
@@ -200,18 +241,16 @@ local function onQuickUseDrugsPressed()
     end
     
     -- Print current moodle levels
-    print("=== QUDrugs: Current Moodle Levels ===")
-    print("Pain: " .. painLevel .. ", Panic: " .. panicLevel .. ", Unhappiness: " .. unhappinessLevel)
-    print("=====================================")
+    print("QUDrugs: Moodles - Pain:" .. painLevel .. " Panic:" .. panicLevel .. " Unhappiness:" .. unhappinessLevel)
     
     -- Check moodle levels and call appropriate functions
-    if panicLevel > 2 then
-        print("QUDrugs: High panic detected, calling highPanicLevel function...")
+    if panicLevel > 0 then
+        print("QUDrugs: High panic detected, treating...")
         highPanicLevel()
-    elseif painLevel > 2 then
+    elseif painLevel > 0 then
         print("QUDrugs: High pain detected, calling highPainLevel function...")
         highPainLevel()
-    elseif unhappinessLevel > 2 then
+    elseif unhappinessLevel > 0 then
         print("QUDrugs: High unhappiness detected, calling highUnhappinessLevel function...")
         highUnhappinessLevel()
     else
@@ -239,4 +278,4 @@ Events.OnKeyPressed.Add(function(key)
     end
 end)
 
-print("QUDrugs: Clean moodle detection loaded")
+print("QUDrugs: All three drug types implemented - Panic (Beta Blockers), Pain (Painkillers), Unhappiness (Antidepressants)")

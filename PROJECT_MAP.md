@@ -26,7 +26,7 @@
 | |
 | \---contents
 | \---mods
-| \---ExtraKeybinds
+| \---QuickUseDrugs
 | | icon.png
 | | mod.info
 | | poster.png
@@ -55,8 +55,10 @@
   - **upload_to_workshop.ps1**: PowerShell script for Steam Workshop uploads
 - **pzApiRef**: Comprehensive API reference sub-module containing Project Zomboid modding API research, core APIs, and implementation examples for Build 42 development
 - **QuickUseDrugs**: Mod packaging root containing preview and workshop metadata
-- **QuickUseDrugs/contents/mods/ExtraKeybinds**: Current mod directory structure (contains QuickUseDrugs mod files)
-- **ExtraKeybinds/42**: Version-specific assets and config for PZ Build 42
-- **42/media/lua/client**: Client-side Lua scripts (QUDrugs.lua, QUDrugsOptions.lua)
+- **QuickUseDrugs/contents/mods/QuickUseDrugs**: Current mod directory structure (contains QuickUseDrugs mod files)
+- **QuickUseDrugs/42**: Version-specific assets and config for PZ Build 42
+- **42/media/lua/client**: Client-side Lua scripts implementing complete drug consumption system
+  - **QUDrugs.lua**: Core mod logic with all three drug types (Beta Blockers, Painkillers, Antidepressants)
+  - **QUDrugsOptions.lua**: Mod options and keybind configuration
 - **42/media/lua/shared/Translate/EN**: English translation files directory (currently empty)
-- **ExtraKeybinds/common**: Shared assets directory (contains .gitkeep placeholder)
+- **QuickUseDrugs/common**: Shared assets directory (contains .gitkeep placeholder)
