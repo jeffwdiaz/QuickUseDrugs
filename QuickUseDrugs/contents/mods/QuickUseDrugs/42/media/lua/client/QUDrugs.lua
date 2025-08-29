@@ -63,26 +63,49 @@ local function isAntidepressant(item)
     return false
 end
 
--- Medication cooldown system (10 in-game minutes)
-local lastMedicationTime = 0
+-- Individual medication cooldown system (10 in-game minutes per drug type)
+local lastBetaBlockerTime = 0
+local lastPainkillerTime = 0
+local lastAntidepressantTime = 0
 
--- Function to check if medication cooldown is active
-local function isMedicationCooldownActive()
-    if lastMedicationTime == 0 then 
+-- Function to check if a specific drug type is on cooldown
+local function isDrugTypeCooldownActive(drugType)
+    local lastTime = 0
+    
+    if drugType == "betaBlockers" then 
+        lastTime = lastBetaBlockerTime
+    elseif drugType == "painkillers" then 
+        lastTime = lastPainkillerTime
+    elseif drugType == "antidepressants" then 
+        lastTime = lastAntidepressantTime
+    end
+    
+    if lastTime == 0 then 
         return false 
     end
     
     local currentTime = getGameTime():getCalender():getTimeInMillis()
-    local timeDifference = currentTime - lastMedicationTime
+    local timeDifference = currentTime - lastTime
     
     -- 10 in-game minutes = 10 * 60 * 1000 = 600,000 milliseconds
     local cooldownDuration = 600000
     return timeDifference < cooldownDuration
 end
 
--- Function to update the last medication time
-local function updateMedicationTime()
-    lastMedicationTime = getGameTime():getCalender():getTimeInMillis()
+-- Function to update cooldown for a specific drug type
+local function updateDrugTypeCooldown(drugType)
+    local currentTime = getGameTime():getCalender():getTimeInMillis()
+    
+    if drugType == "betaBlockers" then 
+        lastBetaBlockerTime = currentTime
+        print("QUDrugs: Beta blocker cooldown started")
+    elseif drugType == "painkillers" then 
+        lastPainkillerTime = currentTime
+        print("QUDrugs: Painkiller cooldown started")
+    elseif drugType == "antidepressants" then 
+        lastAntidepressantTime = currentTime
+        print("QUDrugs: Antidepressant cooldown started")
+    end
 end
 
 -- Generic function to search for any type of medication using recursive container search
@@ -124,8 +147,8 @@ local function treatWithMedication(medicationType, checkFunction, medicationName
         return
     end
 
-    -- Check medication cooldown (10 in-game minutes)
-    if isMedicationCooldownActive() then
+    -- Check medication cooldown for this specific drug type
+    if isDrugTypeCooldownActive(medicationType) then
         player:Say("I just took " .. medicationName)
         return
     end
@@ -150,8 +173,8 @@ local function treatWithMedication(medicationType, checkFunction, medicationName
         print("QUDrugs: Queued " .. medicationName .. " consumption using ISTakePillAction")
         player:Say(playerMessage)
         
-        -- Update medication cooldown after successful consumption
-        updateMedicationTime()
+        -- Update cooldown for this specific drug type after successful consumption
+        updateDrugTypeCooldown(medicationType)
         
         if needsReturn then
             -- Move it back to original container after consumption
@@ -209,18 +232,18 @@ local function onQuickUseDrugsPressed()
     -- Print current moodle levels
     print("QUDrugs: Moodles - Pain:" .. painLevel .. " Panic:" .. panicLevel .. " Unhappiness:" .. unhappinessLevel)
     
-    -- Check moodle levels and call appropriate functions
-    if panicLevel > 0 then
+    -- Check each moodle independently, respecting individual cooldowns
+    if panicLevel > 0 and not isDrugTypeCooldownActive("betaBlockers") then
         print("QUDrugs: High panic detected, treating...")
         highPanicLevel()
-    elseif painLevel > 0 then
+    elseif painLevel > 0 and not isDrugTypeCooldownActive("painkillers") then
         print("QUDrugs: High pain detected, calling highPainLevel function...")
         highPainLevel()
-    elseif unhappinessLevel > 0 then
+    elseif unhappinessLevel > 0 and not isDrugTypeCooldownActive("antidepressants") then
         print("QUDrugs: High unhappiness detected, calling highUnhappinessLevel function...")
         highUnhappinessLevel()
     else
-        print("QUDrugs: No high moodle levels detected")
+        print("QUDrugs: No high moodle levels detected or all medications on cooldown")
         player:Say("I'm ok for now")
     end
 end
