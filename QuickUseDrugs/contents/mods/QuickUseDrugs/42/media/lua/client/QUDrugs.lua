@@ -63,6 +63,28 @@ local function isAntidepressant(item)
     return false
 end
 
+-- Medication cooldown system (10 in-game minutes)
+local lastMedicationTime = 0
+
+-- Function to check if medication cooldown is active
+local function isMedicationCooldownActive()
+    if lastMedicationTime == 0 then 
+        return false 
+    end
+    
+    local currentTime = getGameTime():getCalender():getTimeInMillis()
+    local timeDifference = currentTime - lastMedicationTime
+    
+    -- 10 in-game minutes = 10 * 60 * 1000 = 600,000 milliseconds
+    local cooldownDuration = 600000
+    return timeDifference < cooldownDuration
+end
+
+-- Function to update the last medication time
+local function updateMedicationTime()
+    lastMedicationTime = getGameTime():getCalender():getTimeInMillis()
+end
+
 -- Generic function to search for any type of medication using recursive container search
 local function searchForMedicationRecursive(inventory, checkFunction, medicationName)
     if not inventory then return nil, nil end
@@ -88,55 +110,6 @@ local function searchForMedicationRecursive(inventory, checkFunction, medication
     return nil, nil
 end
 
--- Generic function to search for any type of medication
-local function searchForMedication(player, medicationType, checkFunction, medicationName)
-    if not player then return {} end
-    
-    print("QUDrugs: Searching for " .. medicationName .. "...")
-    
-    local foundItems = {}
-    
-    -- Search player's main inventory
-    local playerInventory = player:getInventory()
-    local inventoryItems = playerInventory:getItems()
-    local inventorySize = inventoryItems:size()
-    
-    for i = 0, inventorySize - 1 do
-        local item = inventoryItems:get(i)
-        if item and checkFunction(item) then
-            table.insert(foundItems, item)
-            print("QUDrugs: Found " .. medicationName .. ": " .. item:getDisplayName())
-        end
-    end
-    
-    -- Search through equipped bags (simplified, no recursion)
-    local bag = player:getClothingItem_Back()
-    if bag and bag:IsInventoryContainer() then
-        local bagInventory = bag:getInventory()
-        if bagInventory then
-            local bagItems = bagInventory:getItems()
-            for i = 0, bagItems:size() - 1 do
-                local item = bagItems:get(i)
-                if item and checkFunction(item) then
-                    table.insert(foundItems, item)
-                    print("QUDrugs: Found " .. medicationName .. " in bag: " .. item:getDisplayName())
-                end
-            end
-        end
-    end
-    
-    -- Report findings
-    if #foundItems > 0 then
-        print("QUDrugs: Found " .. #foundItems .. " " .. medicationName .. "(s)")
-        player:Say("Found some " .. medicationName .. ".")
-    else
-        print("QUDrugs: No " .. medicationName .. " found")
-        player:Say("I need " .. medicationName .. " but can't find any.")
-    end
-    
-    return foundItems
-end
-
 -- Generic function to handle medication treatment for any drug type
 local function treatWithMedication(medicationType, checkFunction, medicationName, playerMessage)
     local player = getPlayer()
@@ -147,7 +120,13 @@ local function treatWithMedication(medicationType, checkFunction, medicationName
 
     -- Check if player is already doing an action
     if ISTimedActionQueue.isPlayerDoingAction(player) then
-        player:Say("I'm busy right now, can't take medication.")
+        player:Say("I can't do that yet")
+        return
+    end
+
+    -- Check medication cooldown (10 in-game minutes)
+    if isMedicationCooldownActive() then
+        player:Say("I just took " .. medicationName)
         return
     end
 
@@ -170,6 +149,9 @@ local function treatWithMedication(medicationType, checkFunction, medicationName
 
         print("QUDrugs: Queued " .. medicationName .. " consumption using ISTakePillAction")
         player:Say(playerMessage)
+        
+        -- Update medication cooldown after successful consumption
+        updateMedicationTime()
         
         if needsReturn then
             -- Move it back to original container after consumption
@@ -239,7 +221,7 @@ local function onQuickUseDrugsPressed()
         highUnhappinessLevel()
     else
         print("QUDrugs: No high moodle levels detected")
-        player:Say("I think I'm ok now.")
+        player:Say("I'm ok for now")
     end
 end
 
